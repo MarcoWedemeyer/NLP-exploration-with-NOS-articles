@@ -48,7 +48,7 @@ def processing(text:str, verbose=False):
     return len(words), len(dictionary), len(sentences), dictionary
 
 
-def extract(soup, save_file=False, verbose=False):
+def extract(soup, save_file=False, path=".\\articles", verbose=False):
     """Extract the text, title, date and categories of the article. Optionally save
     the file."""
     
@@ -69,14 +69,18 @@ def extract(soup, save_file=False, verbose=False):
     if save_file:
         if len(passages) != 0:
             arr = np.array([text, categories, dictionary, w, d, s])
-            np.save(f"articles\\{date[:10]}_{title}", arr)
+            np.save(f"{path}\\{date[:10]}_{title}", arr)
             if verbose: print(f"Saved file under 'articles\\{date[:10]}_{title}.txt'")
     
     return None
 
 
-def scrape(link_categories):
+def scrape(link_categories, path=".\\articles"):
     """Text"""
+    
+    articles = listdir(path)
+    articles.remove(".ipynb_checkpoints")
+    old_n = len(articles)
     
     for category in link_categories:
         ## Parse each category page
@@ -89,9 +93,14 @@ def scrape(link_categories):
         print(f"{category:>16} |",end="")
         for link in article_links:
             soup = soupify(link)
-            extract(soup, save_file=True)
+            extract(soup, save_file=True, path=path)
             print("=",end="")
         print("|")
     print()
+    
+    articles = listdir(path)
+    articles.remove(".ipynb_checkpoints")
+    print(f"Total articles: {len(articles)} (+{len(articles)-old_n})")
+    
     return None
 
