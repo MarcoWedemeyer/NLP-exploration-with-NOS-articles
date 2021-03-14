@@ -1,13 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
+## Libraries for file management
 from os import listdir
-import numpy as np
-import matplotlib.pyplot as plt
+import pickle
 
+## Libraries for data management
+import numpy as np
+
+## Libraries for website interactions
 import urllib3
 from bs4 import BeautifulSoup
 from nltk.tokenize import RegexpTokenizer
@@ -22,7 +20,7 @@ def soupify(url):
     return soup
 
 
-def processing(text:str, verbose=False):
+def processing(text):
     """Tokenize a given string and create a dictionary. Return stats such as
     number of words, size of the dictionary, number of sentences. Also return
     the dictionary."""
@@ -30,7 +28,6 @@ def processing(text:str, verbose=False):
     ## Tokenizing the text
     tokenizer = RegexpTokenizer(r'\w+')
     words = tokenizer.tokenize(text.lower())
-    if verbose: print(f"Number of words: {len(words)}")
 
     ## Creating a dictionary of the token occurrences
     dictionary = {}
@@ -39,18 +36,16 @@ def processing(text:str, verbose=False):
             dictionary[word] += 1
         else:
             dictionary[word] = 1
-    if verbose: print(f"Length of Dictionary: {len(dictionary)}")
 
     ## Creating a list of sentences
     sentences = text.split(". ")
-    if verbose: print(f"Number of sentences: {len(sentences)}")
     
     return len(words), len(dictionary), len(sentences), dictionary
 
 
-def extract(soup, save_file=False, path=".\\articles", verbose=False):
-    """Extract the text, title, date and categories of the article. Optionally save
-    the file."""
+def extract(soup):
+    """Extracts the text, title, date and categories of the article and then
+    dumps it into the database stored in pickle file (overwriting the old version)."""
     
     passages = soup.find_all("p","text_3v_J6Y0G")
     text = " ".join([passage.text for passage in passages])
@@ -65,23 +60,29 @@ def extract(soup, save_file=False, path=".\\articles", verbose=False):
     title = title.strip()
     
     w,d,s,dictionary = processing(text)
-
-    if save_file:
-        if len(passages) != 0:
-            arr = np.array([text, categories, dictionary, w, d, s])
-            np.save(f"{path}\\{date[:10]}_{title}", arr)
-            if verbose: print(f"Saved file under 'articles\\{date[:10]}_{title}.txt'")
     
-    return None
+    if len(passages) != 0:
+        arr = np.array([text, categories, dictionary, w, d, s], dtype=object)
+        
+        with open('article_database.pickle', 'rb+') as handle:
+            db = pickle.load(handle)
+            db[f"{date[:10]}_{title}"] = arr
+            pickle.dump(db, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        return 1
+    else:
+        return 0
 
 
-def scrape(link_categories, path=".\\articles"):
-    """Text"""
+def scrape(link_categories):
+    """Scrape the articles from a given list of categories on the NOS website."""
     
-    articles = listdir(path)
-    articles.remove(".ipynb_checkpoints")
-    old_n = len(articles)
+    handle = open('article_database.pickle', 'rb')
+    db = pickle.load(handle)
+    old_DB_size = len(db)
+    handle.close()
     
+    print("|",end="")
     for category in link_categories:
         ## Parse each category page
         soup = soupify(f"https://nos.nl/nieuws/{category}/")
@@ -90,17 +91,15 @@ def scrape(link_categories, path=".\\articles"):
         article_blocks = soup.find_all("a", class_="link-block list-items__link")
         article_links = [f"https://nos.nl{article['href']}" for article in article_blocks if "liveblog" not in article['href']]
         
-        print(f"{category:>16} |",end="")
+        
         for link in article_links:
             soup = soupify(link)
-            extract(soup, save_file=True, path=path)
-            print("=",end="")
-        print("|")
-    print()
+            n_new_arcticles += extract(soup)
+        print(f" {category} |",end="")
+        
+    handle = open('article_database.pickle', 'rb')
+    db = pickle.load(handle)
+    new_DB_size = len(db)
+    handle.close()
     
-    articles = listdir(path)
-    articles.remove(".ipynb_checkpoints")
-    print(f"Total articles: {len(articles)} (+{len(articles)-old_n})")
-    
-    return None
-
+    return new_DB_size-old_DB_size, new_DB_size
