@@ -2,9 +2,9 @@ import extractor # Custom functions
 from datetime import date
 from time import sleep
 
-print("""|------------------------------------|
-| Executing daily NOS article scrape |
-|------------------------------------|""")
+print("""|----------------------------------------------|
+| Executing daily scheduled NOS article scrape |
+|----------------------------------------------|""")
 
 link_categories = ["binnenland","buitenland","regio","politiek","economie","koningshuis",
                    "tech","cultuur-en-media","opmerkelijk"]

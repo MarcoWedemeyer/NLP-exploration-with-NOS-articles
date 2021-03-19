@@ -1,1 +1,2 @@
 Date, DataBaseSize, NewArticles
+19/03/2021, 3481, 0

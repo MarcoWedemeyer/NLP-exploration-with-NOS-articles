@@ -69,9 +69,7 @@ def extract(soup):
             db[f"{date[:10]}_{title}"] = arr
             pickle.dump(db, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
-        return 1
-    else:
-        return 0
+    return None
 
 
 def scrape(link_categories):
@@ -94,7 +92,7 @@ def scrape(link_categories):
         
         for link in article_links:
             soup = soupify(link)
-            n_new_arcticles += extract(soup)
+            extract(soup)
         print(f" {category} |",end="")
         
     handle = open('article_database.pickle', 'rb')
